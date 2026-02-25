@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bible Challenge 120</title>
+
+<!-- Android 用（PWA） -->
+<link rel="manifest" href="./manifest.json">
+
+<!-- iOS ホーム画面アイコン -->
+<link rel="apple-touch-icon" sizes="180x180" href="./ios_180.png">
+<link rel="apple-touch-icon" sizes="192x192" href="./android_192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="./android_512.png">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#3b82f6" />
+
+<style>
+body { margin:0; font-family: sans-serif; background:#f5f5f5; }
+header { position:fixed; top:0; left:0; right:0; height:60px; background:#3b82f6; color:white;
+         display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:bold; z-index:10; }
+#content { padding:70px 15px 80px; }
+nav { position:fixed; bottom:0; left:0; right:0; height:60px; background:white; border-top:1px solid #ddd; display:flex; }
+nav button { flex:1; border:none; background:none; font-size:14px; }
+
+.page { display:none; }
+.page.active { display:block; }
+
+.card { background:white; padding:15px; border-radius:10px; box-shadow:0 2px 4px rgba(0,0,0,0.1); margin-bottom:15px; }
+
+.progress-bar { width:100%; height:16px; background:#ddd; border-radius:8px; overflow:hidden; }
+.progress-bar-inner { height:100%; width:0%; background:#3b82f6; }
+
+#todayRef { font-size: 1.6em; font-weight: bold; padding: 5px 0; }
+#readBtn { font-size: 1.3em; padding: 10px; }
+
+.list-item { padding:8px 0; border-bottom:1px solid #eee; }
+</style>
+</head>
+
+<body>
+<header>Bible Challenge 120</header>
+
+<div id="content">
+
+<!-- ================= Home ================= -->
+<div id="home" class="page active">
+  <div class="card">
+    <h2><span id="todayDate"></span> の通読箇所</h2>
+    <div id="todayRef"></div>
+    <button id="readBtn">読みました</button>
+  </div>
+
+  <div class="card">
+    <h2>Good Servant</h2>
+    <div id="readers"></div>
+  </div>
+</div>
+
+<!-- ================= Plan ================= -->
+<div id="today" class="page">
+  <div class="card">
+    <h2>120日プラン</h2>
+    <div id="allPlan"></div>
+  </div>
+</div>
+
+<!-- ================= Progress ================= -->
+<div id="progress" class="page">
+  <div class="card">
+    <h2>進捗</h2>
+    <div class="progress-bar"><div id="bar" class="progress-bar-inner"></div></div>
+    <div id="progressText"></div>
+  </div>
+</div>
+
+<!-- ================= Admin ================= -->
+<div id="admin" class="page">
+  <div class="card">
+    <h2>管理者設定</h2>
+    <label>開始日：
+      <input type="date" id="startInput">
+    </label>
+    <button id="saveStart">保存</button>
+  </div>
+</div>
+
+</div>
+
+<!-- ==== Tab ==== -->
+<nav>
+  <button data-tab="home">Home</button>
+  <button data-tab="today">Plan</button>
+  <button data-tab="progress">Progress</button>
+  <button data-tab="admin">Admin</button>
+</nav>
+
+<script>
+/* ================== Bible 120 Plan ================== */
+const plan120 = [
+  "創1–9", "創10–19", "創20–29", "創30–38", "創39–50",
+  "出1–10", "出11–20", "出21–30", "出31–40", "レビ1–10",
+  "レビ11–20", "レビ21–27＋民1–3", "民4–13", "民14–23", "民24–33",
+  "民34–36＋申1–6", "申7–17", "申18–26", "申27–34＋ヨシュ1–2", "ヨシュ3–13",
+
+  "ヨシュ14–24", "士1–10", "士11–19", "士20–21＋ルツ＋1サム1–4", "1サム5–14",
+  "1サム15–24", "1サム25–31＋2サム1–3", "2サム4–13", "2サム14–22", "2サム23–24＋王上1–8",
+
+  "王上9–18", "王上19–22＋王下1–6", "王下7–16", "王下17–25＋1歴1", "1歴2–11",
+  "1歴12–21", "1歴22–29＋2歴1–2", "2歴3–12", "2歴13–22", "2歴23–32",
+
+  "2歴33–36＋エズラ1–6", "エズラ7–10＋ネヘ1–5", "ネヘ6–13＋エステ1–2", "エステ3–10＋ヨブ1–2",
+  "ヨブ3–12", "ヨブ13–22", "ヨブ23–31＋ヨブ32", "ヨブ33–42", "詩1–10", "詩11–21",
+
+  "詩22–31", "詩32–41", "詩42–51", "詩52–61", "詩62–72",
+  "詩73–82", "詩83–94", "詩95–105", "詩106–116", "詩117–119",
+
+  "箴1–12", "箴13–24", "箴25–31＋伝1–3", "伝4–12＋雅歌1", "雅歌2–8＋イザ1–2",
+  "イザ3–12", "イザ13–22", "イザ23–32", "イザ33–42", "イザ43–52",
+
+  "イザ53–62", "イザ63–66＋エレ1–5", "エレ6–15", "エレ16–25", "エレ26–35",
+  "エレ36–45", "エレ46–52＋哀歌1–3", "哀4–5＋エゼ1–7", "エゼ8–17", "エゼ18–27",
+
+  "エゼ28–37", "エゼ38–48", "ダニ1–9", "ダニ10–12＋ホセア1–6", "ホセア7–14＋ヨエル1–2",
+  "ヨエル3＋アモス1–9", "オバデヤ＋ヨナ＋ミカ", "ナホム1–3＋ハバ1–3＋ゼパ1–3＋ハガ1",
+  "ハガ2＋ゼカ1–7", "ゼカ8–14",
+
+  "マラキ＋マタイ1–6", "マタイ7–16", "マタイ17–26", "マタイ27–28＋マルコ1–7",
+  "マルコ8–16", "ルカ1–5", "ルカ6–15", "ルカ16–24", "ヨハ1–8", "ヨハ9–16",
+
+  "ヨハ17–21＋使徒1–5", "使徒6–15", "使徒16–24", "使徒25–28＋ロマ1–6", "ロマ7–16",
+  "1コリ1–9", "1コリ10–16＋2コリ1–3", "2コリ4–13", "ガラ1–6＋エペ1–3",
+  "エペ4–6＋ピリ1–4＋コロ1–2",
+
+  "コロ3–4＋テサ一二", "テモ一1–6＋テモ二1–4", "テト＋ピレ＋ヘブ1–6", "ヘブ7–13",
+  "ヤコブ＋ペテ一二", "ヨハ1–3＋ユダ＋黙1–2", "黙3–12", "黙13–22",
+
+  "", ""   // DAY119–120（調整日）
+];
+
+/* ================== Start Date ================== */
+let startDate = localStorage.getItem("startDate") || new Date().toISOString().slice(0,10);
+localStorage.setItem("startDate", startDate);
+
+function calcDayIndex() {
+  return Math.min(119, Math.floor((new Date() - new Date(startDate)) / 86400000));
+}
+
+const dayIndex = calcDayIndex();
+
+document.getElementById("todayRef").textContent = plan120[dayIndex];
+document.getElementById("allPlan").innerHTML =
+  plan120.map((p,i)=>`Day${i+1}: ${p}`).join("<br>");
+
+/* 今日 */
+document.getElementById("todayDate").textContent =
+  new Date().toLocaleDateString("ja-JP");
+
+/* ================== Readers ================== */
+let readers = JSON.parse(localStorage.getItem("readers") || "[]");
+
+function renderReaders(){
+ document.getElementById("readers").innerHTML =
+   readers.map(r=>`<div class='list-item'>${r.name}：${r.time}</div>`).join('');
+}
+renderReaders();
+
+/* 読んだ */
+document.getElementById("readBtn").onclick = ()=>{
+ let name = prompt("お名前を入力（Good Servant）");
+ if(!name) return;
+ let now = new Date().toLocaleString("ja-JP");
+ readers.push({name, time:now});
+ localStorage.setItem("readers", JSON.stringify(readers));
+ renderReaders();
+};
+
+/* ================== Progress ================== */
+document.getElementById("bar").style.width = ((dayIndex+1)/120*100)+"%";
+document.getElementById("progressText").textContent = `${dayIndex+1}/120 日`;
+
+/* ================== Admin ================== */
+document.getElementById("startInput").value = startDate;
+
+document.getElementById("saveStart").onclick = ()=>{
+  let pass = prompt("パスワードを入力");
+  if(pass !== "JesusChrist"){
+    alert("パスワードが違います");
+    return;
+  }
+
+  let newDate = document.getElementById("startInput").value;
+  if(!newDate) return;
+
+  localStorage.setItem("startDate", newDate);
+  localStorage.setItem("readers", JSON.stringify([]));
+  readers = [];
+  renderReaders();
+
+  alert("開始日を更新し、読了者リストをリセットしました");
+  location.reload();
+};
+
+/* ================== Tab Navigation ================== */
+document.querySelectorAll("nav button").forEach(btn=>{
+ btn.onclick = ()=>{
+   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+   document.getElementById(btn.dataset.tab).classList.add('active');
+ };
+});
+</script>
+
+</body>
+</html>
