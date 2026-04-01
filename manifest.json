@@ -1,7 +1,7 @@
 {
-  "name": "Bible Challenge 90",
-  "short_name": "BC90",
-  "start_url": "./index.html",
+  "name": "Bible Challenge 120",
+  "short_name": "BC120",
+  "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3b82f6",
